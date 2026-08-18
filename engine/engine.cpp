@@ -2117,3 +2117,64 @@ public:
             .lineHeight;
     }
 };
+struct WoflImage {
+    int width = 0;
+    int height = 0;
+    std::vector<WoflPixel> pixels;
+};
+
+class WoflImageRasterizer {
+public:
+    static void drawImage(
+        WoflFramebuffer& framebuffer,
+        const WoflImage& image,
+        int dstX,
+        int dstY,
+        int dstWidth,
+        int dstHeight
+    ) {
+        if (image.width <= 0 ||
+            image.height <= 0 ||
+            dstWidth <= 0 ||
+            dstHeight <= 0) {
+            return;
+        }
+
+        for (int y = 0; y < dstHeight; ++y) {
+            int srcY =
+                (y * image.height) /
+                dstHeight;
+
+            for (int x = 0; x < dstWidth; ++x) {
+                int srcX =
+                    (x * image.width) /
+                    dstWidth;
+
+                std::size_t index =
+                    static_cast<std::size_t>(srcY) *
+                    static_cast<std::size_t>(image.width) +
+                    static_cast<std::size_t>(srcX);
+
+                if (index >= image.pixels.size()) {
+                    continue;
+                }
+
+                const WoflPixel& pixel =
+                    image.pixels[index];
+
+                WoflColor color(
+                    pixel.r,
+                    pixel.g,
+                    pixel.b,
+                    pixel.a
+                );
+
+                framebuffer.setPixel(
+                    dstX + x,
+                    dstY + y,
+                    color
+                );
+            }
+        }
+    }
+};
