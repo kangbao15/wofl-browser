@@ -885,3 +885,283 @@ public:
         return root;
     }
 };
+enum class WoflDisplayType {
+    Background,
+    Border,
+    Text
+};
+
+struct WoflColor {
+    int r;
+    int g;
+    int b;
+    int a;
+
+    WoflColor(
+        int red = 0,
+        int green = 0,
+        int blue = 0,
+        int alpha = 255
+    )
+        : r(red),
+          g(green),
+          b(blue),
+          a(alpha) {}
+};
+
+struct WoflDisplayItem {
+    WoflDisplayType type;
+    WoflRect rect;
+    WoflColor color;
+    std::string text;
+    float borderWidth;
+};
+
+class WoflRenderer {
+public:
+    std::vector<WoflDisplayItem> paintList;
+
+    void clear() {
+        paintList.clear();
+    }
+
+    WoflColor parseColor(
+        const std::string& value
+    ) const {
+        if (value == "black") {
+            return WoflColor(0, 0, 0);
+        }
+
+        if (value == "white") {
+            return WoflColor(255, 255, 255);
+        }
+
+        if (value == "red") {
+            return WoflColor(255, 0, 0);
+        }
+
+        if (value == "green") {
+            return WoflColor(0, 128, 0);
+        }
+
+        if (value == "blue") {
+            return WoflColor(0, 0, 255);
+        }
+
+        if (value == "transparent") {
+            return WoflColor(0, 0, 0, 0);
+        }
+
+        if (value.size() == 7 &&
+            value[0] == '#') {
+
+            try {
+                int r = std::stoi(
+                    value.substr(1, 2),
+                    nullptr,
+                    16
+                );
+
+                int g = std::stoi(
+                    value.substr(3, 2),
+                    nullptr,
+                    16
+                );
+
+                int b = std::stoi(
+                    value.substr(5, 2),
+                    nullptr,
+                    16
+                );
+
+                return WoflColor(
+                    r,
+                    g,
+                    b
+                );
+            } catch (...) {
+                return WoflColor();
+            }
+        }
+
+        return WoflColor();
+    }
+
+    std::string getStyle(
+        const WoflNode& node,
+        const std::string& property
+    ) const {
+        for (auto it =
+             node.styles.rbegin();
+             it != node.styles.rend();
+             ++it) {
+
+            if (it->property == property) {
+                return it->value;
+            }
+        }
+
+        return "";
+    }
+
+    void paintNode(
+        const WoflNode& node
+    ) {
+        if (node.type ==
+            WoflNodeType::Element) {
+
+            paintBackground(node);
+            paintBorder(node);
+        }
+
+        if (node.type ==
+            WoflNodeType::Text) {
+
+            paintText(node);
+        }
+
+        for (const auto& child :
+             node.children) {
+
+            paintNode(child);
+        }
+    }
+
+    void paintBackground(
+        const WoflNode& node
+    ) {
+        std::string value =
+            getStyle(
+                node,
+                "background-color"
+            );
+
+        if (value.empty()) {
+            return;
+        }
+
+        WoflDisplayItem item;
+
+        item.type =
+            WoflDisplayType::Background;
+
+        item.rect =
+            node.rect;
+
+        item.color =
+            parseColor(value);
+
+        item.text = "";
+
+        item.borderWidth = 0.0f;
+
+        paintList.push_back(item);
+    }
+
+    void paintBorder(
+        const WoflNode& node
+    ) {
+        std::string width =
+            getStyle(
+                node,
+                "border-width"
+            );
+
+        if (width.empty()) {
+            return;
+        }
+
+        std::string color =
+            getStyle(
+                node,
+                "border-color"
+            );
+
+        WoflDisplayItem item;
+
+        item.type =
+            WoflDisplayType::Border;
+
+        item.rect =
+            node.rect;
+
+        item.color =
+            parseColor(color);
+
+        item.text = "";
+
+        item.borderWidth =
+            parsePixels(width);
+
+        paintList.push_back(item);
+    }
+
+    void paintText(
+        const WoflNode& node
+    ) {
+        if (node.text.empty()) {
+            return;
+        }
+
+        WoflDisplayItem item;
+
+        item.type =
+            WoflDisplayType::Text;
+
+        item.rect =
+            node.rect;
+
+        std::string color =
+            getStyle(
+                node,
+                "color"
+            );
+
+        if (color.empty()) {
+            color = "black";
+        }
+
+        item.color =
+            parseColor(color);
+
+        item.text =
+            node.text;
+
+        item.borderWidth = 0.0f;
+
+        paintList.push_back(item);
+    }
+
+    float parsePixels(
+        const std::string& value
+    ) const {
+        if (value.empty()) {
+            return 0.0f;
+        }
+
+        std::string number;
+
+        for (char c : value) {
+            if ((c >= '0' &&
+                 c <= '9') ||
+                c == '.' ||
+                c == '-') {
+
+                number += c;
+
+            } else {
+                break;
+            }
+        }
+
+        if (number.empty()) {
+            return 0.0f;
+        }
+
+        try {
+            return std::stof(number);
+        } catch (...) {
+            return 0.0f;
+        }
+    }
+};
