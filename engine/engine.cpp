@@ -2178,3 +2178,84 @@ public:
         }
     }
 };
+struct WoflViewport {
+    int width = 0;
+    int height = 0;
+
+    float deviceScale = 1.0f;
+
+    void resize(
+        int newWidth,
+        int newHeight
+    ) {
+        width = std::max(0, newWidth);
+        height = std::max(0, newHeight);
+    }
+
+    void setDeviceScale(
+        float scale
+    ) {
+        deviceScale =
+            std::max(0.1f, scale);
+    }
+
+    bool contains(
+        float x,
+        float y
+    ) const {
+        return x >= 0.0f &&
+               y >= 0.0f &&
+               x < static_cast<float>(width) &&
+               y < static_cast<float>(height);
+    }
+
+    int pixelWidth() const {
+        return static_cast<int>(
+            width * deviceScale
+        );
+    }
+
+    int pixelHeight() const {
+        return static_cast<int>(
+            height * deviceScale
+        );
+    }
+};
+
+class WoflViewportController {
+private:
+    WoflViewport viewport;
+
+public:
+    void setSize(
+        int width,
+        int height
+    ) {
+        viewport.resize(
+            width,
+            height
+        );
+    }
+
+    void setDeviceScale(
+        float scale
+    ) {
+        viewport.setDeviceScale(
+            scale
+        );
+    }
+
+    const WoflViewport& getViewport() const {
+        return viewport;
+    }
+
+    bool hitViewport(
+        float x,
+        float y
+    ) const {
+        return viewport.contains(
+            x,
+            y
+        );
+    }
+};
