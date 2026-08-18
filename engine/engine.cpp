@@ -9,4 +9,8 @@ public:
     std::string getVersion() const {
         return "0.1.0";
     }
+
+    std::string parseHTML(const std::string& html) const {
+        return html;
+    }
 };
