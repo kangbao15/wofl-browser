@@ -1608,3 +1608,111 @@ public:
         }
     }
 };
+struct WoflRoundedRect {
+    WoflRect rect;
+    float radius;
+};
+
+class WoflBorderRadiusRasterizer {
+public:
+    static bool insideRoundedRect(
+        float px,
+        float py,
+        const WoflRoundedRect& rounded
+    ) {
+        float x = px - rounded.rect.x;
+        float y = py - rounded.rect.y;
+
+        float w = rounded.rect.width;
+        float h = rounded.rect.height;
+
+        float r = std::min(
+            rounded.radius,
+            std::min(w, h) / 2.0f
+        );
+
+        if (x >= r &&
+            x <= w - r) {
+            return y >= 0 && y <= h;
+        }
+
+        if (y >= r &&
+            y <= h - r) {
+            return x >= 0 && x <= w;
+        }
+
+        float cx =
+            x < r ? r : w - r;
+
+        float cy =
+            y < r ? r : h - r;
+
+        float dx = x - cx;
+        float dy = y - cy;
+
+        return dx * dx + dy * dy <= r * r;
+    }
+
+    static void fillRoundedRect(
+        WoflFramebuffer& framebuffer,
+        const WoflRoundedRect& rounded,
+        const WoflColor& color
+    ) {
+        int left =
+            std::max(
+                0,
+                static_cast<int>(
+                    rounded.rect.x
+                )
+            );
+
+        int top =
+            std::max(
+                0,
+                static_cast<int>(
+                    rounded.rect.y
+                )
+            );
+
+        int right =
+            std::min(
+                framebuffer.width,
+                static_cast<int>(
+                    rounded.rect.x +
+                    rounded.rect.width
+                )
+            );
+
+        int bottom =
+            std::min(
+                framebuffer.height,
+                static_cast<int>(
+                    rounded.rect.y +
+                    rounded.rect.height
+                )
+            );
+
+        for (int y = top;
+             y < bottom;
+             ++y) {
+
+            for (int x = left;
+                 x < right;
+                 ++x) {
+
+                if (insideRoundedRect(
+                        static_cast<float>(x) + 0.5f,
+                        static_cast<float>(y) + 0.5f,
+                        rounded
+                    )) {
+
+                    framebuffer.setPixel(
+                        x,
+                        y,
+                        color
+                    );
+                }
+            }
+        }
+    }
+};
