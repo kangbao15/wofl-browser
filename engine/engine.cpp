@@ -1951,3 +1951,118 @@ public:
         layers.clear();
     }
 };
+enum class WoflEventType {
+    MouseMove,
+    MouseDown,
+    MouseUp,
+    MouseWheel,
+    KeyDown,
+    KeyUp
+};
+
+struct WoflEvent {
+    WoflEventType type;
+
+    float x = 0.0f;
+    float y = 0.0f;
+
+    float deltaX = 0.0f;
+    float deltaY = 0.0f;
+
+    int button = 0;
+    int key = 0;
+};
+
+class WoflInputState {
+private:
+    float mouseX = 0.0f;
+    float mouseY = 0.0f;
+
+    bool buttons[8] = {};
+    bool keys[512] = {};
+
+    float wheelX = 0.0f;
+    float wheelY = 0.0f;
+
+public:
+    void handleEvent(
+        const WoflEvent& event
+    ) {
+        switch (event.type) {
+        case WoflEventType::MouseMove:
+            mouseX = event.x;
+            mouseY = event.y;
+            break;
+
+        case WoflEventType::MouseDown:
+            if (event.button >= 0 &&
+                event.button < 8) {
+                buttons[event.button] = true;
+            }
+            break;
+
+        case WoflEventType::MouseUp:
+            if (event.button >= 0 &&
+                event.button < 8) {
+                buttons[event.button] = false;
+            }
+            break;
+
+        case WoflEventType::MouseWheel:
+            wheelX += event.deltaX;
+            wheelY += event.deltaY;
+            break;
+
+        case WoflEventType::KeyDown:
+            if (event.key >= 0 &&
+                event.key < 512) {
+                keys[event.key] = true;
+            }
+            break;
+
+        case WoflEventType::KeyUp:
+            if (event.key >= 0 &&
+                event.key < 512) {
+                keys[event.key] = false;
+            }
+            break;
+        }
+    }
+
+    float getMouseX() const {
+        return mouseX;
+    }
+
+    float getMouseY() const {
+        return mouseY;
+    }
+
+    bool isButtonDown(int button) const {
+        if (button < 0 || button >= 8) {
+            return false;
+        }
+
+        return buttons[button];
+    }
+
+    bool isKeyDown(int key) const {
+        if (key < 0 || key >= 512) {
+            return false;
+        }
+
+        return keys[key];
+    }
+
+    float getWheelX() const {
+        return wheelX;
+    }
+
+    float getWheelY() const {
+        return wheelY;
+    }
+
+    void clearWheel() {
+        wheelX = 0.0f;
+        wheelY = 0.0f;
+    }
+};
