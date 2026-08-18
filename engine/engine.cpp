@@ -34,7 +34,7 @@ public:
     }
 
     WoflNode createElement(const std::string& tag) const {
-        return WoflNode{
+        return {
             WoflNodeType::Element,
             tag,
             "",
@@ -44,7 +44,7 @@ public:
     }
 
     WoflNode createText(const std::string& text) const {
-        return WoflNode{
+        return {
             WoflNodeType::Text,
             "",
             text,
@@ -59,6 +59,96 @@ public:
         const std::string& value
     ) const {
         node.attributes.push_back({name, value});
+    }
+
+    void parseAttributes(
+        WoflNode& node,
+        const std::string& source
+    ) const {
+        std::size_t pos = 0;
+
+        while (pos < source.size()) {
+            while (pos < source.size() &&
+                   (source[pos] == ' ' ||
+                    source[pos] == '\t' ||
+                    source[pos] == '\n')) {
+                ++pos;
+            }
+
+            if (pos >= source.size()) {
+                break;
+            }
+
+            std::size_t nameStart = pos;
+
+            while (pos < source.size() &&
+                   source[pos] != '=' &&
+                   source[pos] != ' ' &&
+                   source[pos] != '\t' &&
+                   source[pos] != '\n') {
+                ++pos;
+            }
+
+            std::string name =
+                source.substr(nameStart, pos - nameStart);
+
+            while (pos < source.size() &&
+                   (source[pos] == ' ' ||
+                    source[pos] == '\t' ||
+                    source[pos] == '\n')) {
+                ++pos;
+            }
+
+            if (pos >= source.size() || source[pos] != '=') {
+                addAttribute(node, name, "");
+                continue;
+            }
+
+            ++pos;
+
+            while (pos < source.size() &&
+                   (source[pos] == ' ' ||
+                    source[pos] == '\t' ||
+                    source[pos] == '\n')) {
+                ++pos;
+            }
+
+            std::string value;
+
+            if (pos < source.size() &&
+                (source[pos] == '"' ||
+                 source[pos] == '\'')) {
+
+                char quote = source[pos++];
+                std::size_t valueStart = pos;
+
+                while (pos < source.size() &&
+                       source[pos] != quote) {
+                    ++pos;
+                }
+
+                value =
+                    source.substr(valueStart, pos - valueStart);
+
+                if (pos < source.size()) {
+                    ++pos;
+                }
+            } else {
+                std::size_t valueStart = pos;
+
+                while (pos < source.size() &&
+                       source[pos] != ' ' &&
+                       source[pos] != '\t' &&
+                       source[pos] != '\n') {
+                    ++pos;
+                }
+
+                value =
+                    source.substr(valueStart, pos - valueStart);
+            }
+
+            addAttribute(node, name, value);
+        }
     }
 
     WoflNode parseDOM(const std::string& html) const {
@@ -83,15 +173,35 @@ public:
                     break;
                 }
 
-                std::string tag =
+                std::string source =
                     html.substr(i + 1, end - i - 1);
 
-                if (!tag.empty() && tag[0] == '/') {
+                if (!source.empty() && source[0] == '/') {
                     if (nodes.size() > 1) {
                         nodes.pop();
                     }
-                } else if (!tag.empty()) {
-                    WoflNode element = createElement(tag);
+                } else if (!source.empty()) {
+                    std::size_t split = 0;
+
+                    while (split < source.size() &&
+                           source[split] != ' ' &&
+                           source[split] != '\t' &&
+                           source[split] != '\n') {
+                        ++split;
+                    }
+
+                    std::string tag =
+                        source.substr(0, split);
+
+                    WoflNode element =
+                        createElement(tag);
+
+                    if (split < source.size()) {
+                        parseAttributes(
+                            element,
+                            source.substr(split)
+                        );
+                    }
 
                     nodes.top()->children.push_back(
                         std::move(element)
