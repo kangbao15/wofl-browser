@@ -2066,3 +2066,54 @@ public:
         wheelY = 0.0f;
     }
 };
+struct WoflFontMetrics {
+    float ascent = 0.0f;
+    float descent = 0.0f;
+    float lineHeight = 0.0f;
+    float averageAdvance = 0.0f;
+};
+
+class WoflFontMetricsEngine {
+public:
+    WoflFontMetrics measure(
+        float fontSize
+    ) const {
+        WoflFontMetrics metrics;
+
+        fontSize =
+            std::max(1.0f, fontSize);
+
+        metrics.ascent =
+            fontSize * 0.8f;
+
+        metrics.descent =
+            fontSize * 0.2f;
+
+        metrics.lineHeight =
+            fontSize * 1.2f;
+
+        metrics.averageAdvance =
+            fontSize * 0.55f;
+
+        return metrics;
+    }
+
+    float measureText(
+        const std::string& text,
+        float fontSize
+    ) const {
+        WoflFontMetrics metrics =
+            measure(fontSize);
+
+        return static_cast<float>(
+            text.size()
+        ) * metrics.averageAdvance;
+    }
+
+    float lineHeight(
+        float fontSize
+    ) const {
+        return measure(fontSize)
+            .lineHeight;
+    }
+};
