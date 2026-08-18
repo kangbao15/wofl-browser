@@ -1,4 +1,5 @@
 #include <string>
+#include <cstddef>
 
 class WoflEngine {
 public:
@@ -10,7 +11,17 @@ public:
         return "0.1.0";
     }
 
-    std::string parseHTML(const std::string& html) const {
-        return html;
+    std::size_t countHTMLTags(const std::string& html) const {
+        std::size_t count = 0;
+
+        for (std::size_t i = 0; i < html.size(); ++i) {
+            if (html[i] == '<' &&
+                i + 1 < html.size() &&
+                html[i + 1] != '/') {
+                ++count;
+            }
+        }
+
+        return count;
     }
 };
