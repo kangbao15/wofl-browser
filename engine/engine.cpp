@@ -3,6 +3,7 @@
 #include <vector>
 #include <stack>
 #include <utility>
+#include <algorithm>
 
 enum class WoflNodeType {
     Document,
@@ -25,6 +26,30 @@ struct WoflCSSRule {
     std::vector<WoflStyle> styles;
 };
 
+struct WoflRect {
+    float x;
+    float y;
+    float width;
+    float height;
+};
+
+struct WoflBoxModel {
+    float marginTop;
+    float marginRight;
+    float marginBottom;
+    float marginLeft;
+
+    float paddingTop;
+    float paddingRight;
+    float paddingBottom;
+    float paddingLeft;
+
+    float borderTop;
+    float borderRight;
+    float borderBottom;
+    float borderLeft;
+};
+
 struct WoflNode {
     WoflNodeType type;
     std::string tag;
@@ -32,6 +57,16 @@ struct WoflNode {
     std::vector<WoflAttribute> attributes;
     std::vector<WoflNode> children;
     std::vector<WoflStyle> styles;
+
+    WoflRect rect{
+        0.0f, 0.0f, 0.0f, 0.0f
+    };
+
+    WoflBoxModel box{
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f
+    };
 };
 
 class WoflEngine {
@@ -41,7 +76,7 @@ public:
     }
 
     std::string getVersion() const {
-        return "0.2.0";
+        return "0.3.0";
     }
 
     WoflNode createElement(const std::string& tag) const {
@@ -51,7 +86,13 @@ public:
             "",
             {},
             {},
-            {}
+            {},
+            {0.0f, 0.0f, 0.0f, 0.0f},
+            {
+                0.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 0.0f
+            }
         };
     }
 
@@ -62,7 +103,13 @@ public:
             text,
             {},
             {},
-            {}
+            {},
+            {0.0f, 0.0f, 0.0f, 0.0f},
+            {
+                0.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 0.0f
+            }
         };
     }
 
@@ -99,6 +146,250 @@ public:
         node.styles.push_back({property, value});
     }
 
+    std::string getStyle(
+        const WoflNode& node,
+        const std::string& property
+    ) const {
+        for (auto it = node.styles.rbegin();
+             it != node.styles.rend();
+             ++it) {
+            if (it->property == property) {
+                return it->value;
+            }
+        }
+
+        return "";
+    }
+
+    float parsePixels(
+        const std::string& value,
+        float fallback = 0.0f
+    ) const {
+        if (value.empty()) {
+            return fallback;
+        }
+
+        std::string number;
+
+        for (char c : value) {
+            if ((c >= '0' && c <= '9') ||
+                c == '.' ||
+                c == '-') {
+                number += c;
+            } else {
+                break;
+            }
+        }
+
+        if (number.empty()) {
+            return fallback;
+        }
+
+        try {
+            return std::stof(number);
+        } catch (...) {
+            return fallback;
+        }
+    }
+
+    void updateBoxModel(WoflNode& node) const {
+        if (node.type != WoflNodeType::Element) {
+            return;
+        }
+
+        float margin =
+            parsePixels(getStyle(node, "margin"));
+
+        float padding =
+            parsePixels(getStyle(node, "padding"));
+
+        float border =
+            parsePixels(getStyle(node, "border-width"));
+
+        node.box.marginTop =
+            parsePixels(
+                getStyle(node, "margin-top"),
+                margin
+            );
+
+        node.box.marginRight =
+            parsePixels(
+                getStyle(node, "margin-right"),
+                margin
+            );
+
+        node.box.marginBottom =
+            parsePixels(
+                getStyle(node, "margin-bottom"),
+                margin
+            );
+
+        node.box.marginLeft =
+            parsePixels(
+                getStyle(node, "margin-left"),
+                margin
+            );
+
+        node.box.paddingTop =
+            parsePixels(
+                getStyle(node, "padding-top"),
+                padding
+            );
+
+        node.box.paddingRight =
+            parsePixels(
+                getStyle(node, "padding-right"),
+                padding
+            );
+
+        node.box.paddingBottom =
+            parsePixels(
+                getStyle(node, "padding-bottom"),
+                padding
+            );
+
+        node.box.paddingLeft =
+            parsePixels(
+                getStyle(node, "padding-left"),
+                padding
+            );
+
+        node.box.borderTop =
+            parsePixels(
+                getStyle(node, "border-top-width"),
+                border
+            );
+
+        node.box.borderRight =
+            parsePixels(
+                getStyle(node, "border-right-width"),
+                border
+            );
+
+        node.box.borderBottom =
+            parsePixels(
+                getStyle(node, "border-bottom-width"),
+                border
+            );
+
+        node.box.borderLeft =
+            parsePixels(
+                getStyle(node, "border-left-width"),
+                border
+            );
+    }
+
+    void calculateLayout(
+        WoflNode& node,
+        float containingWidth,
+        float x = 0.0f,
+        float y = 0.0f
+    ) const {
+        if (node.type == WoflNodeType::Text) {
+            float characterWidth = 8.0f;
+            float lineHeight = 18.0f;
+
+            node.rect.x = x;
+            node.rect.y = y;
+            node.rect.width =
+                static_cast<float>(
+                    node.text.size()
+                ) * characterWidth;
+            node.rect.height = lineHeight;
+
+            return;
+        }
+
+        if (node.type == WoflNodeType::Document) {
+            float currentY = y;
+
+            for (auto& child : node.children) {
+                calculateLayout(
+                    child,
+                    containingWidth,
+                    x,
+                    currentY
+                );
+
+                currentY += child.rect.height;
+            }
+
+            node.rect = {
+                x,
+                y,
+                containingWidth,
+                currentY - y
+            };
+
+            return;
+        }
+
+        updateBoxModel(node);
+
+        float width =
+            parsePixels(
+                getStyle(node, "width"),
+                containingWidth
+            );
+
+        float height =
+            parsePixels(
+                getStyle(node, "height"),
+                0.0f
+            );
+
+        if (width <= 0.0f) {
+            width = containingWidth;
+        }
+
+        float contentX =
+            x + node.box.marginLeft +
+            node.box.borderLeft +
+            node.box.paddingLeft;
+
+        float contentY =
+            y + node.box.marginTop +
+            node.box.borderTop +
+            node.box.paddingTop;
+
+        float currentY = contentY;
+
+        for (auto& child : node.children) {
+            calculateLayout(
+                child,
+                std::max(
+                    0.0f,
+                    width -
+                    node.box.paddingLeft -
+                    node.box.paddingRight -
+                    node.box.borderLeft -
+                    node.box.borderRight
+                ),
+                contentX,
+                currentY
+            );
+
+            currentY +=
+                child.rect.height;
+        }
+
+        if (height <= 0.0f) {
+            height =
+                currentY -
+                y +
+                node.box.paddingBottom +
+                node.box.borderBottom +
+                node.box.marginBottom;
+        }
+
+        node.rect = {
+            x,
+            y,
+            width,
+            height
+        };
+    }
+
     std::vector<WoflStyle> parseStyle(
         const std::string& source
     ) const {
@@ -106,28 +397,39 @@ public:
         std::size_t start = 0;
 
         while (start < source.size()) {
-            std::size_t end = source.find(';', start);
+            std::size_t end =
+                source.find(';', start);
 
             if (end == std::string::npos) {
                 end = source.size();
             }
 
             std::string declaration =
-                source.substr(start, end - start);
+                source.substr(
+                    start,
+                    end - start
+                );
 
             std::size_t colon =
                 declaration.find(':');
 
             if (colon != std::string::npos) {
                 std::string property =
-                    declaration.substr(0, colon);
+                    declaration.substr(
+                        0,
+                        colon
+                    );
 
                 std::string value =
-                    declaration.substr(colon + 1);
+                    declaration.substr(
+                        colon + 1
+                    );
 
                 while (!property.empty() &&
                        property.front() == ' ') {
-                    property.erase(property.begin());
+                    property.erase(
+                        property.begin()
+                    );
                 }
 
                 while (!property.empty() &&
@@ -137,7 +439,9 @@ public:
 
                 while (!value.empty() &&
                        value.front() == ' ') {
-                    value.erase(value.begin());
+                    value.erase(
+                        value.begin()
+                    );
                 }
 
                 while (!value.empty() &&
@@ -159,11 +463,16 @@ public:
         return styles;
     }
 
-    void parseInlineStyle(WoflNode& node) const {
-        for (const auto& attribute : node.attributes) {
+    void parseInlineStyle(
+        WoflNode& node
+    ) const {
+        for (const auto& attribute :
+             node.attributes) {
             if (attribute.name == "style") {
                 node.styles =
-                    parseStyle(attribute.value);
+                    parseStyle(
+                        attribute.value
+                    );
             }
         }
     }
@@ -190,11 +499,16 @@ public:
             }
 
             std::string selector =
-                css.substr(pos, open - pos);
+                css.substr(
+                    pos,
+                    open - pos
+                );
 
             while (!selector.empty() &&
                    selector.front() == ' ') {
-                selector.erase(selector.begin());
+                selector.erase(
+                    selector.begin()
+                );
             }
 
             while (!selector.empty() &&
@@ -212,10 +526,14 @@ public:
                 );
 
             rule.styles =
-                parseStyle(declarations);
+                parseStyle(
+                    declarations
+                );
 
             if (!rule.selector.empty()) {
-                rules.push_back(std::move(rule));
+                rules.push_back(
+                    std::move(rule)
+                );
             }
 
             pos = close + 1;
@@ -224,34 +542,12 @@ public:
         return rules;
     }
 
-    void applyCSS(
-        WoflNode& node,
-        const std::vector<WoflCSSRule>& rules
-    ) const {
-        if (node.type == WoflNodeType::Element) {
-            for (const auto& rule : rules) {
-                if (matchesSelector(node, rule.selector)) {
-                    for (const auto& style : rule.styles) {
-                        addStyle(
-                            node,
-                            style.property,
-                            style.value
-                        );
-                    }
-                }
-            }
-        }
-
-        for (auto& child : node.children) {
-            applyCSS(child, rules);
-        }
-    }
-
     bool matchesSelector(
         const WoflNode& node,
         const std::string& selector
     ) const {
-        if (node.type != WoflNodeType::Element) {
+        if (node.type !=
+            WoflNodeType::Element) {
             return false;
         }
 
@@ -259,15 +555,21 @@ public:
             return true;
         }
 
-        for (const auto& attribute : node.attributes) {
-            if (selector[0] == '#' &&
+        for (const auto& attribute :
+             node.attributes) {
+
+            if (!selector.empty() &&
+                selector[0] == '#' &&
                 attribute.name == "id" &&
-                selector.substr(1) == attribute.value) {
+                selector.substr(1) ==
+                    attribute.value) {
                 return true;
             }
 
-            if (selector[0] == '.' &&
+            if (!selector.empty() &&
+                selector[0] == '.' &&
                 attribute.name == "class") {
+
                 std::string classes =
                     attribute.value;
 
@@ -275,9 +577,13 @@ public:
 
                 while (start < classes.size()) {
                     std::size_t end =
-                        classes.find(' ', start);
+                        classes.find(
+                            ' ',
+                            start
+                        );
 
-                    if (end == std::string::npos) {
+                    if (end ==
+                        std::string::npos) {
                         end = classes.size();
                     }
 
@@ -295,6 +601,42 @@ public:
         }
 
         return false;
+    }
+
+    void applyCSS(
+        WoflNode& node,
+        const std::vector<WoflCSSRule>& rules
+    ) const {
+        if (node.type ==
+            WoflNodeType::Element) {
+
+            for (const auto& rule : rules) {
+                if (matchesSelector(
+                        node,
+                        rule.selector)) {
+
+                    for (const auto& style :
+                         rule.styles) {
+
+                        addStyle(
+                            node,
+                            style.property,
+                            style.value
+                        );
+                    }
+                }
+            }
+
+            updateBoxModel(node);
+        }
+
+        for (auto& child :
+             node.children) {
+            applyCSS(
+                child,
+                rules
+            );
+        }
     }
 
     void parseAttributes(
@@ -340,7 +682,13 @@ public:
 
             if (pos >= source.size() ||
                 source[pos] != '=') {
-                addAttribute(node, name, "");
+
+                addAttribute(
+                    node,
+                    name,
+                    ""
+                );
+
                 continue;
             }
 
@@ -359,8 +707,11 @@ public:
                 (source[pos] == '"' ||
                  source[pos] == '\'')) {
 
-                char quote = source[pos++];
-                std::size_t valueStart = pos;
+                char quote =
+                    source[pos++];
+
+                std::size_t valueStart =
+                    pos;
 
                 while (pos < source.size() &&
                        source[pos] != quote) {
@@ -376,8 +727,11 @@ public:
                 if (pos < source.size()) {
                     ++pos;
                 }
+
             } else {
-                std::size_t valueStart = pos;
+
+                std::size_t valueStart =
+                    pos;
 
                 while (pos < source.size() &&
                        source[pos] != ' ' &&
@@ -393,7 +747,11 @@ public:
                     );
             }
 
-            addAttribute(node, name, value);
+            addAttribute(
+                node,
+                name,
+                value
+            );
         }
     }
 
@@ -406,7 +764,13 @@ public:
             "",
             {},
             {},
-            {}
+            {},
+            {0.0f, 0.0f, 0.0f, 0.0f},
+            {
+                0.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 0.0f
+            }
         };
 
         std::stack<WoflNode*> nodes;
@@ -416,10 +780,12 @@ public:
 
         while (i < html.size()) {
             if (html[i] == '<') {
+
                 std::size_t end =
                     html.find('>', i);
 
-                if (end == std::string::npos) {
+                if (end ==
+                    std::string::npos) {
                     break;
                 }
 
@@ -440,34 +806,47 @@ public:
 
                     std::size_t split = 0;
 
-                    while (split < source.size() &&
-                           source[split] != ' ' &&
-                           source[split] != '\t' &&
-                           source[split] != '\n') {
+                    while (
+                        split < source.size() &&
+                        source[split] != ' ' &&
+                        source[split] != '\t' &&
+                        source[split] != '\n'
+                    ) {
                         ++split;
                     }
 
                     std::string tag =
-                        source.substr(0, split);
+                        source.substr(
+                            0,
+                            split
+                        );
 
                     WoflNode element =
                         createElement(tag);
 
-                    if (split < source.size()) {
+                    if (split <
+                        source.size()) {
+
                         parseAttributes(
                             element,
-                            source.substr(split)
+                            source.substr(
+                                split
+                            )
                         );
                     }
 
-                    parseInlineStyle(element);
-
-                    nodes.top()->children.push_back(
-                        std::move(element)
+                    parseInlineStyle(
+                        element
                     );
 
+                    nodes.top()
+                        ->children.push_back(
+                            std::move(element)
+                        );
+
                     WoflNode* child =
-                        &nodes.top()->children.back();
+                        &nodes.top()
+                            ->children.back();
 
                     if (!isVoidElement(tag)) {
                         nodes.push(child);
@@ -481,7 +860,8 @@ public:
                 std::size_t end =
                     html.find('<', i);
 
-                if (end == std::string::npos) {
+                if (end ==
+                    std::string::npos) {
                     end = html.size();
                 }
 
@@ -492,9 +872,10 @@ public:
                     );
 
                 if (!text.empty()) {
-                    nodes.top()->children.push_back(
-                        createText(text)
-                    );
+                    nodes.top()
+                        ->children.push_back(
+                            createText(text)
+                        );
                 }
 
                 i = end;
