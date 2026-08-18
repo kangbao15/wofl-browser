@@ -1,5 +1,11 @@
 #include <string>
 #include <cstddef>
+#include <vector>
+
+struct WoflNode {
+    std::string tag;
+    std::vector<WoflNode> children;
+};
 
 class WoflEngine {
 public:
@@ -23,5 +29,9 @@ public:
         }
 
         return count;
+    }
+
+    WoflNode createNode(const std::string& tag) const {
+        return WoflNode{tag, {}};
     }
 };
