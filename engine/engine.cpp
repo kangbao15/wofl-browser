@@ -1165,3 +1165,235 @@ public:
         }
     }
 };
+struct WoflPixel {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+};
+
+class WoflFramebuffer {
+public:
+    int width;
+    int height;
+    std::vector<WoflPixel> pixels;
+
+    WoflFramebuffer(
+        int w,
+        int h
+    )
+        : width(w),
+          height(h),
+          pixels(
+              static_cast<std::size_t>(w) *
+              static_cast<std::size_t>(h)
+          ) {
+        clear(
+            WoflColor(255, 255, 255, 255)
+        );
+    }
+
+    void clear(
+        const WoflColor& color
+    ) {
+        WoflPixel pixel{
+            static_cast<unsigned char>(
+                color.r
+            ),
+            static_cast<unsigned char>(
+                color.g
+            ),
+            static_cast<unsigned char>(
+                color.b
+            ),
+            static_cast<unsigned char>(
+                color.a
+            )
+        };
+
+        std::fill(
+            pixels.begin(),
+            pixels.end(),
+            pixel
+        );
+    }
+
+    bool inside(
+        int x,
+        int y
+    ) const {
+        return x >= 0 &&
+               y >= 0 &&
+               x < width &&
+               y < height;
+    }
+
+    void setPixel(
+        int x,
+        int y,
+        const WoflColor& color
+    ) {
+        if (!inside(x, y)) {
+            return;
+        }
+
+        std::size_t index =
+            static_cast<std::size_t>(y) *
+            static_cast<std::size_t>(width) +
+            static_cast<std::size_t>(x);
+
+        pixels[index] = {
+            static_cast<unsigned char>(
+                color.r
+            ),
+            static_cast<unsigned char>(
+                color.g
+            ),
+            static_cast<unsigned char>(
+                color.b
+            ),
+            static_cast<unsigned char>(
+                color.a
+            )
+        };
+    }
+
+    void fillRect(
+        const WoflRect& rect,
+        const WoflColor& color
+    ) {
+        int left =
+            static_cast<int>(rect.x);
+
+        int top =
+            static_cast<int>(rect.y);
+
+        int right =
+            static_cast<int>(
+                rect.x + rect.width
+            );
+
+        int bottom =
+            static_cast<int>(
+                rect.y + rect.height
+            );
+
+        left =
+            std::max(0, left);
+
+        top =
+            std::max(0, top);
+
+        right =
+            std::min(width, right);
+
+        bottom =
+            std::min(height, bottom);
+
+        for (int y = top;
+             y < bottom;
+             ++y) {
+
+            for (int x = left;
+                 x < right;
+                 ++x) {
+
+                setPixel(
+                    x,
+                    y,
+                    color
+                );
+            }
+        }
+    }
+
+    void drawBorder(
+        const WoflRect& rect,
+        const WoflColor& color,
+        float borderWidth
+    ) {
+        int thickness =
+            std::max(
+                1,
+                static_cast<int>(
+                    borderWidth
+                )
+            );
+
+        WoflRect top{
+            rect.x,
+            rect.y,
+            rect.width,
+            static_cast<float>(
+                thickness
+            )
+        };
+
+        WoflRect bottom{
+            rect.x,
+            rect.y + rect.height -
+                thickness,
+            rect.width,
+            static_cast<float>(
+                thickness
+            )
+        };
+
+        WoflRect left{
+            rect.x,
+            rect.y,
+            static_cast<float>(
+                thickness
+            ),
+            rect.height
+        };
+
+        WoflRect right{
+            rect.x + rect.width -
+                thickness,
+            rect.y,
+            static_cast<float>(
+                thickness
+            ),
+            rect.height
+        };
+
+        fillRect(top, color);
+        fillRect(bottom, color);
+        fillRect(left, color);
+        fillRect(right, color);
+    }
+};
+
+class WoflRasterizer {
+public:
+    void rasterize(
+        const WoflRenderer& renderer,
+        WoflFramebuffer& framebuffer
+    ) const {
+        for (const auto& item :
+             renderer.paintList) {
+
+            if (item.type ==
+                WoflDisplayType::Background) {
+
+                framebuffer.fillRect(
+                    item.rect,
+                    item.color
+                );
+            }
+
+            else if (
+                item.type ==
+                WoflDisplayType::Border
+            ) {
+
+                framebuffer.drawBorder(
+                    item.rect,
+                    item.color,
+                    item.borderWidth
+                );
+            }
+        }
+    }
+};
