@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <vector>
 #include <stack>
+#include <utility>
 
 enum class WoflNodeType {
     Document,
@@ -9,10 +10,16 @@ enum class WoflNodeType {
     Text
 };
 
+struct WoflAttribute {
+    std::string name;
+    std::string value;
+};
+
 struct WoflNode {
     WoflNodeType type;
     std::string tag;
     std::string text;
+    std::vector<WoflAttribute> attributes;
     std::vector<WoflNode> children;
 };
 
@@ -31,6 +38,7 @@ public:
             WoflNodeType::Element,
             tag,
             "",
+            {},
             {}
         };
     }
@@ -40,8 +48,17 @@ public:
             WoflNodeType::Text,
             "",
             text,
+            {},
             {}
         };
+    }
+
+    void addAttribute(
+        WoflNode& node,
+        const std::string& name,
+        const std::string& value
+    ) const {
+        node.attributes.push_back({name, value});
     }
 
     WoflNode parseDOM(const std::string& html) const {
@@ -49,6 +66,7 @@ public:
             WoflNodeType::Document,
             "document",
             "",
+            {},
             {}
         };
 
@@ -75,7 +93,9 @@ public:
                 } else if (!tag.empty()) {
                     WoflNode element = createElement(tag);
 
-                    nodes.top()->children.push_back(element);
+                    nodes.top()->children.push_back(
+                        std::move(element)
+                    );
 
                     WoflNode* child =
                         &nodes.top()->children.back();
