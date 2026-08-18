@@ -4,42 +4,153 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wofl Browser</title>
+
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <header>
-    <div>🐺 Wofl Browser</div>
+  <!-- TOP GLASS DOCK -->
+  <header class="dock">
+
+    <a class="logo" href="#">
+      <span>🐺</span>
+      <strong>Wofl</strong>
+    </a>
 
     <nav>
-      <a href="#">Home</a>
-      <a href="#">Download</a>
-      <a href="https://github.com/KangBao15/wofl-browser">Source</a>
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/KangBao15/wofl-browser">
+        Source
+      </a>
     </nav>
+
   </header>
 
+
+  <!-- HOME -->
   <main>
 
-    <section>
-      <p>OPEN SOURCE BROWSER</p>
+    <section class="hero">
+
+      <div class="badge">
+        <span></span>
+        OPEN SOURCE BROWSER
+      </div>
 
       <h1>
         Meet<br>
-        Wofl Browser.
+        <em>Wofl Browser.</em>
       </h1>
 
       <p>
-        A browser built from the ground up.
+        A modern open-source browser built
+        from the ground up.
       </p>
 
-      <button>Download Wofl</button>
-      <a href="https://github.com/KangBao15/wofl-browser/releases" class="download-button">
-  Download Wofl
-</a>
+      <div class="actions">
+
+        <a
+          href="https://github.com/KangBao15/wofl-browser/releases/latest"
+          class="download-button"
+        >
+          Download Wofl
+        </a>
+
+        <a
+          href="https://github.com/KangBao15/wofl-browser"
+          class="secondary-button"
+        >
+          View Source
+        </a>
+
+      </div>
+
+    </section>
+
+
+    <!-- FEATURES -->
+    <section id="features" class="features">
+
+      <div class="section-title">
+        <span>01</span>
+        <h2>Made for the web.</h2>
+      </div>
+
+      <div class="cards">
+
+        <article class="card">
+          <div class="icon">⚡</div>
+          <h3>Fast</h3>
+          <p>
+            Built with performance and
+            responsiveness in mind.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">🐺</div>
+          <h3>Open Source</h3>
+          <p>
+            The source code is public,
+            open and ready to evolve.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">◈</div>
+          <h3>Beautiful</h3>
+          <p>
+            Glass, blur and a distinctive
+            Wofl interface.
+          </p>
+        </article>
+
+      </div>
+
+    </section>
+
+
+    <!-- DOWNLOAD -->
+    <section id="download" class="download">
+
+      <div>
+        <span class="small">LATEST RELEASE</span>
+
+        <h2>
+          Ready to run with Wofl?
+        </h2>
+
+        <p>
+          Get the latest version from GitHub Releases.
+        </p>
+      </div>
+
+      <a
+        href="https://github.com/KangBao15/wofl-browser/releases/latest"
+        class="download-button"
+      >
+        Download
+      </a>
+
     </section>
 
   </main>
+
+
+  <!-- FOOTER -->
+  <footer>
+
+    <span>
+      🐺 Wofl Browser
+    </span>
+
+    <span>
+      Open Source · Built by KangBao
+    </span>
+
+  </footer>
 
 </body>
 </html>
