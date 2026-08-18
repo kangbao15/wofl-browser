@@ -1805,3 +1805,86 @@ public:
         return stack.back();
     }
 };
+struct WoflScrollOffset {
+    float x = 0.0f;
+    float y = 0.0f;
+};
+
+class WoflScrollState {
+private:
+    WoflScrollOffset offset;
+    float contentWidth = 0.0f;
+    float contentHeight = 0.0f;
+    float viewportWidth = 0.0f;
+    float viewportHeight = 0.0f;
+
+public:
+    void setContentSize(
+        float width,
+        float height
+    ) {
+        contentWidth = std::max(0.0f, width);
+        contentHeight = std::max(0.0f, height);
+        clamp();
+    }
+
+    void setViewportSize(
+        float width,
+        float height
+    ) {
+        viewportWidth = std::max(0.0f, width);
+        viewportHeight = std::max(0.0f, height);
+        clamp();
+    }
+
+    void scrollBy(
+        float dx,
+        float dy
+    ) {
+        offset.x += dx;
+        offset.y += dy;
+        clamp();
+    }
+
+    void scrollTo(
+        float x,
+        float y
+    ) {
+        offset.x = x;
+        offset.y = y;
+        clamp();
+    }
+
+    WoflScrollOffset getOffset() const {
+        return offset;
+    }
+
+    float maxScrollX() const {
+        return std::max(
+            0.0f,
+            contentWidth - viewportWidth
+        );
+    }
+
+    float maxScrollY() const {
+        return std::max(
+            0.0f,
+            contentHeight - viewportHeight
+        );
+    }
+
+private:
+    void clamp() {
+        offset.x = std::clamp(
+            offset.x,
+            0.0f,
+            maxScrollX()
+        );
+
+        offset.y = std::clamp(
+            offset.y,
+            0.0f,
+            maxScrollY()
+        );
+    }
+};
