@@ -4,6 +4,7 @@
 
 struct WoflNode {
     std::string tag;
+    std::string text;
     std::vector<WoflNode> children;
 };
 
@@ -32,6 +33,6 @@ public:
     }
 
     WoflNode createNode(const std::string& tag) const {
-        return WoflNode{tag, {}};
+        return WoflNode{tag, "", {}};
     }
 };
