@@ -61,6 +61,23 @@ public:
         node.attributes.push_back({name, value});
     }
 
+    bool isVoidElement(const std::string& tag) const {
+        return tag == "area" ||
+               tag == "base" ||
+               tag == "br" ||
+               tag == "col" ||
+               tag == "embed" ||
+               tag == "hr" ||
+               tag == "img" ||
+               tag == "input" ||
+               tag == "link" ||
+               tag == "meta" ||
+               tag == "param" ||
+               tag == "source" ||
+               tag == "track" ||
+               tag == "wbr";
+    }
+
     void parseAttributes(
         WoflNode& node,
         const std::string& source
@@ -210,7 +227,9 @@ public:
                     WoflNode* child =
                         &nodes.top()->children.back();
 
-                    nodes.push(child);
+                    if (!isVoidElement(tag)) {
+                        nodes.push(child);
+                    }
                 }
 
                 i = end + 1;
