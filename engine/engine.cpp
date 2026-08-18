@@ -1397,3 +1397,78 @@ public:
         }
     }
 };
+#include <fstream>
+
+class WoflImageWriter {
+public:
+    static bool writePPM(
+        const WoflFramebuffer& framebuffer,
+        const std::string& filename
+    ) {
+        std::ofstream file(
+            filename,
+            std::ios::binary
+        );
+
+        if (!file.is_open()) {
+            return false;
+        }
+
+        file << "P6\n";
+        file << framebuffer.width
+             << " "
+             << framebuffer.height
+             << "\n";
+        file << "255\n";
+
+        for (const auto& pixel :
+             framebuffer.pixels) {
+
+            file.put(
+                static_cast<char>(pixel.r)
+            );
+
+            file.put(
+                static_cast<char>(pixel.g)
+            );
+
+            file.put(
+                static_cast<char>(pixel.b)
+            );
+        }
+
+        return file.good();
+    }
+};
+
+class WoflRenderPipeline {
+public:
+    WoflRenderer renderer;
+    WoflRasterizer rasterizer;
+
+    bool render(
+        const WoflNode& document,
+        int width,
+        int height,
+        const std::string& output
+    ) {
+        renderer.clear();
+
+        renderer.paintNode(document);
+
+        WoflFramebuffer framebuffer(
+            width,
+            height
+        );
+
+        rasterizer.rasterize(
+            renderer,
+            framebuffer
+        );
+
+        return WoflImageWriter::writePPM(
+            framebuffer,
+            output
+        );
+    }
+};
