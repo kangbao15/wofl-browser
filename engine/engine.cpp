@@ -1472,3 +1472,139 @@ public:
         );
     }
 };
+struct WoflGlyph {
+    int width;
+    int height;
+    std::vector<unsigned char> bitmap;
+};
+
+class WoflTextRasterizer {
+public:
+    static WoflGlyph makeGlyph(char character) {
+        WoflGlyph glyph;
+
+        glyph.width = 5;
+        glyph.height = 7;
+        glyph.bitmap.resize(35, 0);
+
+        // Basic placeholder glyph patterns.
+        // Real font loading will replace this later.
+        static const unsigned char pattern[7][5] = {
+            {1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        };
+
+        if (character == ' ') {
+            std::fill(
+                glyph.bitmap.begin(),
+                glyph.bitmap.end(),
+                0
+            );
+            return glyph;
+        }
+
+        for (int y = 0; y < 7; ++y) {
+            for (int x = 0; x < 5; ++x) {
+                glyph.bitmap[
+                    static_cast<std::size_t>(y * 5 + x)
+                ] = pattern[y][x];
+            }
+        }
+
+        return glyph;
+    }
+
+    static void drawGlyph(
+        WoflFramebuffer& framebuffer,
+        char character,
+        int x,
+        int y,
+        const WoflColor& color
+    ) {
+        WoflGlyph glyph =
+            makeGlyph(character);
+
+        for (int gy = 0;
+             gy < glyph.height;
+             ++gy) {
+
+            for (int gx = 0;
+                 gx < glyph.width;
+                 ++gx) {
+
+                std::size_t index =
+                    static_cast<std::size_t>(
+                        gy * glyph.width + gx
+                    );
+
+                if (glyph.bitmap[index] == 0) {
+                    continue;
+                }
+
+                framebuffer.setPixel(
+                    x + gx,
+                    y + gy,
+                    color
+                );
+            }
+        }
+    }
+
+    static void drawText(
+        WoflFramebuffer& framebuffer,
+        const std::string& text,
+        int x,
+        int y,
+        const WoflColor& color
+    ) {
+        int cursorX = x;
+
+        for (char character : text) {
+            drawGlyph(
+                framebuffer,
+                character,
+                cursorX,
+                y,
+                color
+            );
+
+            cursorX += 6;
+        }
+    }
+};
+
+class WoflTextPaintStage {
+public:
+    void paint(
+        const WoflRenderer& renderer,
+        WoflFramebuffer& framebuffer
+    ) const {
+        for (const auto& item :
+             renderer.paintList) {
+
+            if (item.type !=
+                WoflDisplayType::Text) {
+                continue;
+            }
+
+            int x =
+                static_cast<int>(item.rect.x);
+
+            int y =
+                static_cast<int>(item.rect.y);
+
+            WoflTextRasterizer::drawText(
+                framebuffer,
+                item.text,
+                x,
+                y,
+                item.color
+            );
+        }
+    }
+};
