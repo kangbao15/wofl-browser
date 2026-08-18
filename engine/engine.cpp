@@ -1716,3 +1716,92 @@ public:
         }
     }
 };
+struct WoflClipRect {
+    int x;
+    int y;
+    int width;
+    int height;
+
+    bool contains(int px, int py) const {
+        return px >= x &&
+               py >= y &&
+               px < x + width &&
+               py < y + height;
+    }
+};
+
+class WoflClipStack {
+private:
+    std::vector<WoflClipRect> stack;
+
+public:
+    void clear() {
+        stack.clear();
+    }
+
+    void push(const WoflClipRect& clip) {
+        if (stack.empty()) {
+            stack.push_back(clip);
+            return;
+        }
+
+        const WoflClipRect& current =
+            stack.back();
+
+        int left =
+            std::max(current.x, clip.x);
+
+        int top =
+            std::max(current.y, clip.y);
+
+        int right =
+            std::min(
+                current.x + current.width,
+                clip.x + clip.width
+            );
+
+        int bottom =
+            std::min(
+                current.y + current.height,
+                clip.y + clip.height
+            );
+
+        stack.push_back({
+            left,
+            top,
+            std::max(0, right - left),
+            std::max(0, bottom - top)
+        });
+    }
+
+    void pop() {
+        if (!stack.empty()) {
+            stack.pop_back();
+        }
+    }
+
+    bool empty() const {
+        return stack.empty();
+    }
+
+    bool contains(int x, int y) const {
+        if (stack.empty()) {
+            return true;
+        }
+
+        return stack.back().contains(x, y);
+    }
+
+    WoflClipRect current() const {
+        if (stack.empty()) {
+            return {
+                0,
+                0,
+                0,
+                0
+            };
+        }
+
+        return stack.back();
+    }
+};
