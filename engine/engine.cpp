@@ -1888,3 +1888,66 @@ private:
         );
     }
 };
+struct WoflLayer {
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+    float opacity = 1.0f;
+    bool visible = true;
+};
+
+class WoflCompositor {
+private:
+    std::vector<WoflLayer> layers;
+
+public:
+    void clear() {
+        layers.clear();
+    }
+
+    void addLayer(const WoflLayer& layer) {
+        layers.push_back(layer);
+    }
+
+    std::size_t layerCount() const {
+        return layers.size();
+    }
+
+    const WoflLayer* getLayer(
+        std::size_t index
+    ) const {
+        if (index >= layers.size()) {
+            return nullptr;
+        }
+
+        return &layers[index];
+    }
+
+    void setOpacity(
+        std::size_t index,
+        float opacity
+    ) {
+        if (index >= layers.size()) {
+            return;
+        }
+
+        layers[index].opacity =
+            std::clamp(opacity, 0.0f, 1.0f);
+    }
+
+    void setVisible(
+        std::size_t index,
+        bool visible
+    ) {
+        if (index >= layers.size()) {
+            return;
+        }
+
+        layers[index].visible = visible;
+    }
+
+    void clearLayers() {
+        layers.clear();
+    }
+};
