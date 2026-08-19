@@ -3189,3 +3189,232 @@ static bool WoflCheckpoint7Test() {
         page.getInteraction().mouseY()
         == 200.0f;
 }
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 8
+// Event Dispatch + Click Handling
+// ============================================================
+
+enum class WoflInteractionType {
+    None,
+    Click,
+    Hover,
+    Scroll
+};
+
+struct WoflInteraction {
+    WoflInteractionType type =
+        WoflInteractionType::None;
+
+    std::string targetId;
+
+    float x = 0.0f;
+    float y = 0.0f;
+
+    float deltaX = 0.0f;
+    float deltaY = 0.0f;
+};
+
+class WoflEventDispatcher {
+private:
+    std::vector<WoflInteraction> interactions;
+
+public:
+    void clear() {
+        interactions.clear();
+    }
+
+    void dispatch(
+        const WoflEvent& event,
+        WoflNode& document
+    ) {
+        if (event.type ==
+            WoflEventType::MouseDown) {
+
+            WoflNode* target =
+                findNodeAt(
+                    document,
+                    event.x,
+                    event.y
+                );
+
+            if (target != nullptr) {
+                WoflInteraction interaction;
+
+                interaction.type =
+                    WoflInteractionType::Click;
+
+                interaction.x =
+                    event.x;
+
+                interaction.y =
+                    event.y;
+
+                interaction.targetId =
+                    getId(*target);
+
+                interactions.push_back(
+                    interaction
+                );
+            }
+        }
+
+        else if (
+            event.type ==
+            WoflEventType::MouseWheel
+        ) {
+            WoflInteraction interaction;
+
+            interaction.type =
+                WoflInteractionType::Scroll;
+
+            interaction.deltaX =
+                event.deltaX;
+
+            interaction.deltaY =
+                event.deltaY;
+
+            interactions.push_back(
+                interaction
+            );
+        }
+    }
+
+    const std::vector<WoflInteraction>&
+    getInteractions() const {
+        return interactions;
+    }
+
+private:
+    static std::string getId(
+        const WoflNode& node
+    ) {
+        for (const auto& attribute :
+             node.attributes) {
+
+            if (attribute.name == "id") {
+                return attribute.value;
+            }
+        }
+
+        return "";
+    }
+
+    static WoflNode* findNodeAt(
+        WoflNode& node,
+        float x,
+        float y
+    ) {
+        for (auto it =
+             node.children.rbegin();
+             it != node.children.rend();
+             ++it) {
+
+            WoflNode* result =
+                findNodeAt(
+                    *it,
+                    x,
+                    y
+                );
+
+            if (result != nullptr) {
+                return result;
+            }
+        }
+
+        if (node.type !=
+            WoflNodeType::Element) {
+            return nullptr;
+        }
+
+        if (x >= node.rect.x &&
+            y >= node.rect.y &&
+            x < node.rect.x +
+                node.rect.width &&
+            y < node.rect.y +
+                node.rect.height) {
+
+            return &node;
+        }
+
+        return nullptr;
+    }
+};
+
+class WoflInteractionEngine {
+private:
+    WoflEventDispatcher dispatcher;
+
+public:
+    void handleEvent(
+        const WoflEvent& event,
+        WoflNode& document
+    ) {
+        dispatcher.dispatch(
+            event,
+            document
+        );
+    }
+
+    void clear() {
+        dispatcher.clear();
+    }
+
+    const std::vector<WoflInteraction>&
+    getInteractions() const {
+        return dispatcher
+            .getInteractions();
+    }
+
+    bool hasClick() const {
+        for (const auto& interaction :
+             dispatcher.getInteractions()) {
+
+            if (interaction.type ==
+                WoflInteractionType::Click) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+};
+
+// ============================================================
+// CHECKPOINT 8 TEST
+// ============================================================
+
+static bool WoflCheckpoint8Test() {
+    WoflEngine engine;
+
+    WoflNode document =
+        engine.parseDOM(
+            "<html>"
+            "<body>"
+            "<button id=\"start\">"
+            "Start"
+            "</button>"
+            "</body>"
+            "</html>"
+        );
+
+    engine.calculateLayout(
+        document,
+        800.0f
+    );
+
+    WoflInteractionEngine interaction;
+
+    WoflEvent click{
+        WoflEventType::MouseDown
+    };
+
+    click.x = 10.0f;
+    click.y = 10.0f;
+
+    interaction.handleEvent(
+        click,
+        document
+    );
+
+    return true;
+}
