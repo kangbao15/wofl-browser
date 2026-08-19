@@ -1,3 +1,4 @@
+#include <functional>
 #include <string>
 #include <cstddef>
 #include <vector>
@@ -4009,3 +4010,31 @@ static bool WoflCheckpoint12Test() {
                 1280 * 720
             );
 }
+class WoflEventDispatcher {
+public:
+    using Handler = std::function<void(const WoflEvent&)>;
+
+private:
+    std::vector<Handler> handlers;
+
+public:
+    void addHandler(Handler handler) {
+        handlers.push_back(std::move(handler));
+    }
+
+    void dispatch(const WoflEvent& event) const {
+        for (const auto& handler : handlers) {
+            if (handler) {
+                handler(event);
+            }
+        }
+    }
+
+    void clear() {
+        handlers.clear();
+    }
+
+    std::size_t handlerCount() const {
+        return handlers.size();
+    }
+};
