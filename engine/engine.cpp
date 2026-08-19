@@ -2647,3 +2647,170 @@ static bool WoflCheckpoint4Test(
         output
     );
 }
+// ============================================================
+// Wofl Browser - Checkpoint 5
+// Page Engine: HTML + CSS -> DOM -> Layout -> Paint
+// ============================================================
+
+struct WoflPage {
+    WoflNode document;
+    std::vector<WoflCSSRule> cssRules;
+};
+
+class WoflPageEngine {
+public:
+    WoflEngine engine;
+
+    WoflPage createPage(
+        const std::string& html,
+        const std::string& css = ""
+    ) const {
+        WoflPage page;
+
+        page.document =
+            engine.parseDOM(html);
+
+        page.cssRules =
+            engine.parseCSS(css);
+
+        engine.applyCSS(
+            page.document,
+            page.cssRules
+        );
+
+        return page;
+    }
+
+    void layout(
+        WoflPage& page,
+        float width,
+        float height
+    ) const {
+        engine.calculateLayout(
+            page.document,
+            width,
+            0.0f,
+            0.0f
+        );
+
+        page.document.rect.width =
+            width;
+
+        if (page.document.rect.height >
+            height) {
+            page.document.rect.height =
+                page.document.rect.height;
+        }
+    }
+
+    const WoflNode& getDocument(
+        const WoflPage& page
+    ) const {
+        return page.document;
+    }
+};
+
+class WoflBrowserView {
+private:
+    WoflPageEngine pageEngine;
+    WoflRenderPipeline pipeline;
+    WoflTextPaintStage textStage;
+
+public:
+    bool renderPage(
+        const std::string& html,
+        const std::string& css,
+        int width,
+        int height,
+        const std::string& output
+    ) {
+        WoflPage page =
+            pageEngine.createPage(
+                html,
+                css
+            );
+
+        pageEngine.layout(
+            page,
+            static_cast<float>(width),
+            static_cast<float>(height)
+        );
+
+        pipeline.renderer.clear();
+
+        pipeline.renderer.paintNode(
+            page.document
+        );
+
+        WoflFramebuffer framebuffer(
+            width,
+            height
+        );
+
+        pipeline.rasterizer.rasterize(
+            pipeline.renderer,
+            framebuffer
+        );
+
+        textStage.paint(
+            pipeline.renderer,
+            framebuffer
+        );
+
+        return WoflImageWriter::writePPM(
+            framebuffer,
+            output
+        );
+    }
+};
+
+class WoflBrowser {
+private:
+    WoflPageEngine pageEngine;
+    WoflBrowserView view;
+
+    std::string currentURL;
+    std::string currentHTML;
+    std::string currentCSS;
+
+public:
+    void load(
+        const std::string& url,
+        const std::string& html,
+        const std::string& css = ""
+    ) {
+        currentURL = url;
+        currentHTML = html;
+        currentCSS = css;
+    }
+
+    bool render(
+        int width,
+        int height,
+        const std::string& output
+    ) {
+        if (currentHTML.empty()) {
+            return false;
+        }
+
+        return view.renderPage(
+            currentHTML,
+            currentCSS,
+            width,
+            height,
+            output
+        );
+    }
+
+    const std::string& getURL() const {
+        return currentURL;
+    }
+
+    const std::string& getHTML() const {
+        return currentHTML;
+    }
+
+    const std::string& getCSS() const {
+        return currentCSS;
+    }
+};
