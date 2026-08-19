@@ -64,3 +64,32 @@ void WoflBlurEngine::blur(
         }
     }
 }
+void WoflGlassMaterial::apply(
+    std::vector<WoflBlurPixel>& pixels,
+    int width,
+    int height,
+    int blurRadius,
+    float opacity
+) {
+    WoflBlurEngine::blur(
+        pixels,
+        width,
+        height,
+        blurRadius
+    );
+
+    opacity =
+        std::clamp(
+            opacity,
+            0.0f,
+            1.0f
+        );
+
+    for (auto& pixel : pixels) {
+        pixel.a =
+            static_cast<unsigned char>(
+                static_cast<float>(pixel.a) *
+                opacity
+            );
+    }
+}

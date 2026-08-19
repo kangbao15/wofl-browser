@@ -19,3 +19,13 @@ public:
         int radius
     );
 };
+class WoflGlassMaterial {
+public:
+    static void apply(
+        std::vector<WoflBlurPixel>& pixels,
+        int width,
+        int height,
+        int blurRadius,
+        float opacity
+    );
+};
