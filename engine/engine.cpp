@@ -3418,3 +3418,162 @@ static bool WoflCheckpoint8Test() {
 
     return true;
 }
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 9
+// Scroll + Viewport Integration
+// ============================================================
+
+class WoflViewportScrollController {
+private:
+    WoflViewportController viewport;
+    WoflScrollState scroll;
+
+public:
+    void setViewport(
+        int width,
+        int height
+    ) {
+        viewport.setSize(
+            width,
+            height
+        );
+
+        scroll.setViewportSize(
+            static_cast<float>(width),
+            static_cast<float>(height)
+        );
+    }
+
+    void setContentSize(
+        float width,
+        float height
+    ) {
+        scroll.setContentSize(
+            width,
+            height
+        );
+    }
+
+    void scrollBy(
+        float dx,
+        float dy
+    ) {
+        scroll.scrollBy(
+            dx,
+            dy
+        );
+    }
+
+    void scrollTo(
+        float x,
+        float y
+    ) {
+        scroll.scrollTo(
+            x,
+            y
+        );
+    }
+
+    WoflScrollOffset getOffset() const {
+        return scroll.getOffset();
+    }
+
+    float maxScrollX() const {
+        return scroll.maxScrollX();
+    }
+
+    float maxScrollY() const {
+        return scroll.maxScrollY();
+    }
+
+    bool contains(
+        float x,
+        float y
+    ) const {
+        return viewport.hitViewport(
+            x,
+            y
+        );
+    }
+};
+
+class WoflScrollInteractionEngine {
+private:
+    WoflViewportScrollController controller;
+
+public:
+    void setViewport(
+        int width,
+        int height
+    ) {
+        controller.setViewport(
+            width,
+            height
+        );
+    }
+
+    void setContentSize(
+        float width,
+        float height
+    ) {
+        controller.setContentSize(
+            width,
+            height
+        );
+    }
+
+    void handleWheel(
+        float deltaX,
+        float deltaY
+    ) {
+        controller.scrollBy(
+            deltaX,
+            deltaY
+        );
+    }
+
+    WoflScrollOffset getOffset() const {
+        return controller.getOffset();
+    }
+
+    float maxScrollY() const {
+        return controller.maxScrollY();
+    }
+};
+
+// ============================================================
+// CHECKPOINT 9 TEST
+// ============================================================
+
+static bool WoflCheckpoint9Test() {
+    WoflScrollInteractionEngine engine;
+
+    engine.setViewport(
+        1280,
+        720
+    );
+
+    engine.setContentSize(
+        1280.0f,
+        2000.0f
+    );
+
+    engine.handleWheel(
+        0.0f,
+        500.0f
+    );
+
+    WoflScrollOffset offset =
+        engine.getOffset();
+
+    if (offset.y <= 0.0f) {
+        return false;
+    }
+
+    if (offset.y >
+        engine.maxScrollY()) {
+        return false;
+    }
+
+    return true;
+}
