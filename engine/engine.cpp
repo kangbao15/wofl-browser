@@ -2259,3 +2259,391 @@ public:
         );
     }
 };
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 4
+// Real HTML + CSS Render Pipeline
+// ============================================================
+
+class WoflDocumentRenderer {
+public:
+    WoflEngine engine;
+    WoflRenderPipeline pipeline;
+    WoflTextPaintStage textStage;
+
+    bool renderHTML(
+        const std::string& html,
+        const std::string& css,
+        int width,
+        int height,
+        const std::string& output
+    ) {
+        if (width <= 0 || height <= 0) {
+            return false;
+        }
+
+        // ----------------------------------------------------
+        // 1. HTML -> DOM
+        // ----------------------------------------------------
+
+        WoflNode document =
+            engine.parseDOM(html);
+
+        // ----------------------------------------------------
+        // 2. CSS -> CSS Rules
+        // ----------------------------------------------------
+
+        std::vector<WoflCSSRule> rules =
+            engine.parseCSS(css);
+
+        // ----------------------------------------------------
+        // 3. Inline styles + CSS
+        // ----------------------------------------------------
+
+        applyStyles(
+            document,
+            rules
+        );
+
+        // ----------------------------------------------------
+        // 4. Layout
+        // ----------------------------------------------------
+
+        engine.calculateLayout(
+            document,
+            static_cast<float>(width),
+            0.0f,
+            0.0f
+        );
+
+        // ----------------------------------------------------
+        // 5. Paint
+        // ----------------------------------------------------
+
+        pipeline.renderer.clear();
+
+        pipeline.renderer.paintNode(
+            document
+        );
+
+        // ----------------------------------------------------
+        // 6. Framebuffer
+        // ----------------------------------------------------
+
+        WoflFramebuffer framebuffer(
+            width,
+            height
+        );
+
+        // ----------------------------------------------------
+        // 7. Rasterize backgrounds + borders
+        // ----------------------------------------------------
+
+        pipeline.rasterizer.rasterize(
+            pipeline.renderer,
+            framebuffer
+        );
+
+        // ----------------------------------------------------
+        // 8. Rasterize text
+        // ----------------------------------------------------
+
+        textStage.paint(
+            pipeline.renderer,
+            framebuffer
+        );
+
+        // ----------------------------------------------------
+        // 9. Write image
+        // ----------------------------------------------------
+
+        return WoflImageWriter::writePPM(
+            framebuffer,
+            output
+        );
+    }
+
+private:
+
+    void applyStyles(
+        WoflNode& node,
+        const std::vector<WoflCSSRule>& rules
+    ) {
+        // Apply CSS rules to this node.
+        engine.applyCSS(
+            node,
+            rules
+        );
+
+        // Make sure inline styles exist.
+        if (node.type ==
+            WoflNodeType::Element) {
+
+            engine.parseInlineStyle(
+                node
+            );
+
+            engine.updateBoxModel(
+                node
+            );
+        }
+    }
+};
+
+
+// ============================================================
+// WOFL STYLE CASCADE
+// ============================================================
+
+class WoflStyleEngine {
+public:
+
+    static void apply(
+        WoflNode& document,
+        WoflEngine& engine,
+        const std::vector<WoflCSSRule>& rules
+    ) {
+        applyNode(
+            document,
+            engine,
+            rules
+        );
+    }
+
+private:
+
+    static void applyNode(
+        WoflNode& node,
+        WoflEngine& engine,
+        const std::vector<WoflCSSRule>& rules
+    ) {
+        if (node.type ==
+            WoflNodeType::Element) {
+
+            // Parse inline style first.
+            engine.parseInlineStyle(
+                node
+            );
+
+            // Apply stylesheet rules.
+            for (const auto& rule :
+                 rules) {
+
+                if (!engine.matchesSelector(
+                        node,
+                        rule.selector
+                    )) {
+
+                    continue;
+                }
+
+                for (const auto& style :
+                     rule.styles) {
+
+                    engine.addStyle(
+                        node,
+                        style.property,
+                        style.value
+                    );
+                }
+            }
+
+            engine.updateBoxModel(
+                node
+            );
+        }
+
+        for (auto& child :
+             node.children) {
+
+            applyNode(
+                child,
+                engine,
+                rules
+            );
+        }
+    }
+};
+
+
+// ============================================================
+// WOFL DISPLAY LIST BUILDER
+// ============================================================
+
+class WoflDisplayListBuilder {
+public:
+
+    static void build(
+        const WoflNode& node,
+        WoflRenderer& renderer
+    ) {
+        renderer.paintNode(
+            node
+        );
+    }
+};
+
+
+// ============================================================
+// WOFL COMPLETE PIPELINE
+// ============================================================
+
+class WoflEngineRuntime {
+public:
+
+    WoflEngine engine;
+    WoflRenderer renderer;
+    WoflRasterizer rasterizer;
+    WoflTextPaintStage textPainter;
+
+    WoflEngineRuntime() = default;
+
+    bool render(
+        const std::string& html,
+        const std::string& css,
+        int width,
+        int height,
+        const std::string& output
+    ) {
+        if (width <= 0 ||
+            height <= 0) {
+
+            return false;
+        }
+
+        // ----------------------------------------------------
+        // HTML
+        // ----------------------------------------------------
+
+        WoflNode document =
+            engine.parseDOM(
+                html
+            );
+
+        // ----------------------------------------------------
+        // CSS
+        // ----------------------------------------------------
+
+        std::vector<WoflCSSRule> rules =
+            engine.parseCSS(
+                css
+            );
+
+        // ----------------------------------------------------
+        // STYLE
+        // ----------------------------------------------------
+
+        WoflStyleEngine::apply(
+            document,
+            engine,
+            rules
+        );
+
+        // ----------------------------------------------------
+        // LAYOUT
+        // ----------------------------------------------------
+
+        engine.calculateLayout(
+            document,
+            static_cast<float>(width),
+            0.0f,
+            0.0f
+        );
+
+        // ----------------------------------------------------
+        // DISPLAY LIST
+        // ----------------------------------------------------
+
+        renderer.clear();
+
+        WoflDisplayListBuilder::build(
+            document,
+            renderer
+        );
+
+        // ----------------------------------------------------
+        // FRAMEBUFFER
+        // ----------------------------------------------------
+
+        WoflFramebuffer framebuffer(
+            width,
+            height
+        );
+
+        // ----------------------------------------------------
+        // RASTER
+        // ----------------------------------------------------
+
+        rasterizer.rasterize(
+            renderer,
+            framebuffer
+        );
+
+        // ----------------------------------------------------
+        // TEXT
+        // ----------------------------------------------------
+
+        textPainter.paint(
+            renderer,
+            framebuffer
+        );
+
+        // ----------------------------------------------------
+        // OUTPUT
+        // ----------------------------------------------------
+
+        return WoflImageWriter::writePPM(
+            framebuffer,
+            output
+        );
+    }
+
+    std::string engineName() const {
+        return engine.getName();
+    }
+
+    std::string engineVersion() const {
+        return "0.4.0";
+    }
+};
+
+
+// ============================================================
+// WOFL CHECKPOINT 4 TEST
+// ============================================================
+
+static bool WoflCheckpoint4Test(
+    const std::string& output
+) {
+    WoflEngineRuntime runtime;
+
+    const std::string html =
+        "<html>"
+        "<body>"
+        "<div id=\"box\">"
+        "Wofl Browser"
+        "</div>"
+        "</body>"
+        "</html>";
+
+    const std::string css =
+        "body {"
+        "background-color: white;"
+        "padding: 20px;"
+        "}"
+        "#box {"
+        "background-color: #eeeeff;"
+        "border-width: 2px;"
+        "border-color: #663399;"
+        "padding: 20px;"
+        "margin: 10px;"
+        "color: black;"
+        "}";
+
+    return runtime.render(
+        html,
+        css,
+        800,
+        600,
+        output
+    );
+}
