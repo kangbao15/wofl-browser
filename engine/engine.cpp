@@ -3577,3 +3577,147 @@ static bool WoflCheckpoint9Test() {
 
     return true;
 }
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 10
+// Layer Compositor + Opacity
+// ============================================================
+
+class WoflLayerCompositorEngine {
+private:
+    WoflCompositor compositor;
+
+public:
+    void clear() {
+        compositor.clear();
+    }
+
+    std::size_t addLayer(
+        int x,
+        int y,
+        int width,
+        int height,
+        float opacity = 1.0f,
+        bool visible = true
+    ) {
+        WoflLayer layer;
+
+        layer.x = x;
+        layer.y = y;
+        layer.width = width;
+        layer.height = height;
+        layer.opacity =
+            std::clamp(opacity, 0.0f, 1.0f);
+        layer.visible = visible;
+
+        compositor.addLayer(layer);
+
+        return compositor.layerCount() - 1;
+    }
+
+    void setOpacity(
+        std::size_t index,
+        float opacity
+    ) {
+        compositor.setOpacity(
+            index,
+            opacity
+        );
+    }
+
+    void setVisible(
+        std::size_t index,
+        bool visible
+    ) {
+        compositor.setVisible(
+            index,
+            visible
+        );
+    }
+
+    std::size_t layerCount() const {
+        return compositor.layerCount();
+    }
+
+    const WoflLayer* getLayer(
+        std::size_t index
+    ) const {
+        return compositor.getLayer(index);
+    }
+
+    void clearLayers() {
+        compositor.clearLayers();
+    }
+};
+
+// ============================================================
+// CHECKPOINT 10 TEST
+// ============================================================
+
+static bool WoflCheckpoint10Test() {
+    WoflLayerCompositorEngine compositor;
+
+    compositor.clear();
+
+    std::size_t background =
+        compositor.addLayer(
+            0,
+            0,
+            1280,
+            720,
+            1.0f,
+            true
+        );
+
+    std::size_t overlay =
+        compositor.addLayer(
+            100,
+            100,
+            500,
+            300,
+            0.75f,
+            true
+        );
+
+    if (compositor.layerCount() != 2) {
+        return false;
+    }
+
+    const WoflLayer* layer =
+        compositor.getLayer(overlay);
+
+    if (layer == nullptr) {
+        return false;
+    }
+
+    if (layer->opacity != 0.75f) {
+        return false;
+    }
+
+    compositor.setOpacity(
+        background,
+        0.5f
+    );
+
+    layer =
+        compositor.getLayer(background);
+
+    if (layer == nullptr ||
+        layer->opacity != 0.5f) {
+        return false;
+    }
+
+    compositor.setVisible(
+        overlay,
+        false
+    );
+
+    layer =
+        compositor.getLayer(overlay);
+
+    if (layer == nullptr ||
+        layer->visible) {
+        return false;
+    }
+
+    return true;
+}
