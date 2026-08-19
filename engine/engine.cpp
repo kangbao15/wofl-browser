@@ -3001,3 +3001,191 @@ static bool WoflCheckpoint6Test(
         output
     );
 }
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 7
+// DOM Query + Browser Interaction
+// ============================================================
+
+class WoflDOMQuery {
+public:
+    static WoflNode* findById(
+        WoflNode& node,
+        const std::string& id
+    ) {
+        if (node.type == WoflNodeType::Element) {
+            for (const auto& attribute : node.attributes) {
+                if (attribute.name == "id" &&
+                    attribute.value == id) {
+                    return &node;
+                }
+            }
+        }
+
+        for (auto& child : node.children) {
+            WoflNode* result =
+                findById(child, id);
+
+            if (result != nullptr) {
+                return result;
+            }
+        }
+
+        return nullptr;
+    }
+
+    static WoflNode* findByTag(
+        WoflNode& node,
+        const std::string& tag
+    ) {
+        if (node.type == WoflNodeType::Element &&
+            node.tag == tag) {
+            return &node;
+        }
+
+        for (auto& child : node.children) {
+            WoflNode* result =
+                findByTag(child, tag);
+
+            if (result != nullptr) {
+                return result;
+            }
+        }
+
+        return nullptr;
+    }
+};
+
+class WoflBrowserInteraction {
+private:
+    WoflInputState input;
+
+public:
+    void handleEvent(
+        const WoflEvent& event
+    ) {
+        input.handleEvent(event);
+    }
+
+    bool isMouseDown(
+        int button
+    ) const {
+        return input.isButtonDown(button);
+    }
+
+    bool isKeyDown(
+        int key
+    ) const {
+        return input.isKeyDown(key);
+    }
+
+    float mouseX() const {
+        return input.getMouseX();
+    }
+
+    float mouseY() const {
+        return input.getMouseY();
+    }
+
+    float wheelY() const {
+        return input.getWheelY();
+    }
+
+    void clearWheel() {
+        input.clearWheel();
+    }
+};
+
+class WoflInteractivePage {
+private:
+    WoflPage page;
+    WoflBrowserInteraction interaction;
+
+public:
+    void load(
+        WoflPageEngine& engine,
+        const std::string& html,
+        const std::string& css = ""
+    ) {
+        page =
+            engine.createPage(
+                html,
+                css
+            );
+    }
+
+    WoflNode* getElementById(
+        const std::string& id
+    ) {
+        return WoflDOMQuery::findById(
+            page.document,
+            id
+        );
+    }
+
+    WoflNode* getElementByTag(
+        const std::string& tag
+    ) {
+        return WoflDOMQuery::findByTag(
+            page.document,
+            tag
+        );
+    }
+
+    WoflBrowserInteraction& getInteraction() {
+        return interaction;
+    }
+
+    WoflPage& getPage() {
+        return page;
+    }
+};
+
+// ============================================================
+// CHECKPOINT 7 TEST
+// ============================================================
+
+static bool WoflCheckpoint7Test() {
+    WoflPageEngine engine;
+    WoflInteractivePage page;
+
+    page.load(
+        engine,
+        "<html>"
+        "<body>"
+        "<div id=\"main\">"
+        "<p>Hello Wofl</p>"
+        "</div>"
+        "</body>"
+        "</html>"
+    );
+
+    WoflNode* main =
+        page.getElementById("main");
+
+    if (main == nullptr) {
+        return false;
+    }
+
+    WoflNode* paragraph =
+        page.getElementByTag("p");
+
+    if (paragraph == nullptr) {
+        return false;
+    }
+
+    WoflEvent event{
+        WoflEventType::MouseMove
+    };
+
+    event.x = 100.0f;
+    event.y = 200.0f;
+
+    page.getInteraction()
+        .handleEvent(event);
+
+    return
+        page.getInteraction().mouseX()
+        == 100.0f &&
+        page.getInteraction().mouseY()
+        == 200.0f;
+}
