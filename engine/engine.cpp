@@ -2814,3 +2814,190 @@ public:
         return currentCSS;
     }
 };
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 6
+// Browser Window + Navigation State
+// ============================================================
+
+enum class WoflNavigationState {
+    Empty,
+    Loading,
+    Loaded,
+    Failed
+};
+
+struct WoflPageState {
+    std::string url;
+    std::string html;
+    std::string css;
+    WoflNavigationState state =
+        WoflNavigationState::Empty;
+};
+
+class WoflNavigationController {
+private:
+    WoflPageState current;
+
+public:
+    void beginNavigation(
+        const std::string& url
+    ) {
+        current.url = url;
+        current.html.clear();
+        current.css.clear();
+        current.state =
+            WoflNavigationState::Loading;
+    }
+
+    void setContent(
+        const std::string& html,
+        const std::string& css
+    ) {
+        current.html = html;
+        current.css = css;
+        current.state =
+            WoflNavigationState::Loaded;
+    }
+
+    void fail() {
+        current.state =
+            WoflNavigationState::Failed;
+    }
+
+    const WoflPageState& getPage() const {
+        return current;
+    }
+
+    bool isLoading() const {
+        return current.state ==
+            WoflNavigationState::Loading;
+    }
+
+    bool isLoaded() const {
+        return current.state ==
+            WoflNavigationState::Loaded;
+    }
+};
+
+struct WoflWindow {
+    int width = 1280;
+    int height = 720;
+
+    std::string title =
+        "Wofl Browser";
+
+    bool visible = true;
+
+    void resize(
+        int newWidth,
+        int newHeight
+    ) {
+        width =
+            std::max(1, newWidth);
+
+        height =
+            std::max(1, newHeight);
+    }
+};
+
+class WoflBrowserWindow {
+private:
+    WoflWindow window;
+    WoflNavigationController navigation;
+    WoflBrowser browser;
+
+public:
+    void resize(
+        int width,
+        int height
+    ) {
+        window.resize(
+            width,
+            height
+        );
+    }
+
+    void navigate(
+        const std::string& url,
+        const std::string& html,
+        const std::string& css = ""
+    ) {
+        navigation.beginNavigation(
+            url
+        );
+
+        navigation.setContent(
+            html,
+            css
+        );
+
+        browser.load(
+            url,
+            html,
+            css
+        );
+    }
+
+    bool render(
+        const std::string& output
+    ) {
+        if (!navigation.isLoaded()) {
+            return false;
+        }
+
+        return browser.render(
+            window.width,
+            window.height,
+            output
+        );
+    }
+
+    const WoflWindow& getWindow() const {
+        return window;
+    }
+
+    const WoflPageState& getPage() const {
+        return navigation.getPage();
+    }
+};
+
+// ============================================================
+// CHECKPOINT 6 TEST
+// ============================================================
+
+static bool WoflCheckpoint6Test(
+    const std::string& output
+) {
+    WoflBrowserWindow browser;
+
+    browser.resize(
+        1280,
+        720
+    );
+
+    browser.navigate(
+        "wofl://home",
+        "<html>"
+        "<body>"
+        "<div id=\"content\">"
+        "Welcome to Wofl Browser"
+        "</div>"
+        "</body>"
+        "</html>",
+        "body {"
+        "background-color: white;"
+        "padding: 24px;"
+        "}"
+        "#content {"
+        "background-color: #eeeeff;"
+        "border-width: 2px;"
+        "border-color: #663399;"
+        "padding: 24px;"
+        "color: black;"
+        "}"
+    );
+
+    return browser.render(
+        output
+    );
+}
