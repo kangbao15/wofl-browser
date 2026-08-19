@@ -3721,3 +3721,107 @@ static bool WoflCheckpoint10Test() {
 
     return true;
 }
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 11
+// Image Rendering + Text Paint Integration
+// ============================================================
+
+class WoflPaintEngine {
+private:
+    WoflTextPaintStage textStage;
+
+public:
+    void paintText(
+        const WoflRenderer& renderer,
+        WoflFramebuffer& framebuffer
+    ) const {
+        textStage.paint(
+            renderer,
+            framebuffer
+        );
+    }
+
+    void paintImage(
+        WoflFramebuffer& framebuffer,
+        const WoflImage& image,
+        int x,
+        int y,
+        int width,
+        int height
+    ) const {
+        WoflImageRasterizer::drawImage(
+            framebuffer,
+            image,
+            x,
+            y,
+            width,
+            height
+        );
+    }
+};
+
+// ============================================================
+// CHECKPOINT 11 TEST
+// ============================================================
+
+static bool WoflCheckpoint11Test() {
+    WoflFramebuffer framebuffer(
+        320,
+        200
+    );
+
+    WoflRenderer renderer;
+
+    WoflNode text =
+        WoflEngine().createText(
+            "Wofl Browser"
+        );
+
+    text.rect = {
+        10.0f,
+        10.0f,
+        100.0f,
+        20.0f
+    };
+
+    renderer.paintNode(text);
+
+    WoflPaintEngine paint;
+
+    paint.paintText(
+        renderer,
+        framebuffer
+    );
+
+    WoflImage image;
+
+    image.width = 2;
+    image.height = 2;
+
+    image.pixels.resize(
+        4,
+        WoflPixel{
+            255,
+            255,
+            255,
+            255
+        }
+    );
+
+    paint.paintImage(
+        framebuffer,
+        image,
+        20,
+        20,
+        40,
+        40
+    );
+
+    return
+        framebuffer.width == 320 &&
+        framebuffer.height == 200 &&
+        framebuffer.pixels.size() ==
+            static_cast<std::size_t>(
+                320 * 200
+            );
+}
