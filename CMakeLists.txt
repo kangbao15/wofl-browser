@@ -8,5 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(WoflBrowser
     src/main.cpp
     engine/engine.cpp
+    engine/input.cpp
     engine/blur.cpp
 )
