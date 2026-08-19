@@ -3825,3 +3825,187 @@ static bool WoflCheckpoint11Test() {
                 320 * 200
             );
 }
+// ============================================================
+// WOFL ENGINE — CHECKPOINT 12
+// FINAL ENGINE PIPELINE
+// ============================================================
+
+class WoflEnginePipeline {
+private:
+    WoflEngine engine;
+    WoflRenderer renderer;
+    WoflRasterizer rasterizer;
+    WoflTextPaintStage textPainter;
+    WoflInteractionEngine interaction;
+    WoflViewportScrollController viewport;
+    WoflLayerCompositorEngine compositor;
+
+public:
+    WoflNode document;
+
+    bool loadHTML(
+        const std::string& html
+    ) {
+        document =
+            engine.parseDOM(html);
+
+        return true;
+    }
+
+    void applyStyles(
+        const std::string& css
+    ) {
+        std::vector<WoflCSSRule> rules =
+            engine.parseCSS(css);
+
+        engine.applyCSS(
+            document,
+            rules
+        );
+    }
+
+    void layout(
+        float width
+    ) {
+        engine.calculateLayout(
+            document,
+            width
+        );
+    }
+
+    void setupViewport(
+        int width,
+        int height
+    ) {
+        viewport.setViewport(
+            width,
+            height
+        );
+
+        viewport.setContentSize(
+            document.rect.width,
+            document.rect.height
+        );
+    }
+
+    void handleEvent(
+        const WoflEvent& event
+    ) {
+        interaction.handleEvent(
+            event,
+            document
+        );
+
+        if (event.type ==
+            WoflEventType::MouseWheel) {
+
+            viewport.scrollBy(
+                event.deltaX,
+                event.deltaY
+            );
+        }
+    }
+
+    void render(
+        WoflFramebuffer& framebuffer
+    ) {
+        renderer.clear();
+
+        renderer.paintNode(
+            document
+        );
+
+        rasterizer.rasterize(
+            renderer,
+            framebuffer
+        );
+
+        textPainter.paint(
+            renderer,
+            framebuffer
+        );
+    }
+
+    WoflScrollOffset getScrollOffset()
+        const {
+        return viewport.getOffset();
+    }
+
+    std::size_t layerCount() const {
+        return compositor.layerCount();
+    }
+
+    WoflEngine& getEngine() {
+        return engine;
+    }
+
+    WoflRenderer& getRenderer() {
+        return renderer;
+    }
+};
+
+// ============================================================
+// CHECKPOINT 12 FINAL TEST
+// ============================================================
+
+static bool WoflCheckpoint12Test() {
+    WoflEnginePipeline pipeline;
+
+    if (!pipeline.loadHTML(
+        "<html>"
+        "<body>"
+        "<div id=\"main\">"
+        "Wofl Browser"
+        "</div>"
+        "</body>"
+        "</html>"
+    )) {
+        return false;
+    }
+
+    pipeline.applyStyles(
+        "body { background-color: white; }"
+        "#main { width: 400px; height: 200px; "
+        "background-color: #eeeeee; "
+        "border-width: 2px; "
+        "border-color: black; }"
+    );
+
+    pipeline.layout(
+        1280.0f
+    );
+
+    pipeline.setupViewport(
+        1280,
+        720
+    );
+
+    WoflFramebuffer framebuffer(
+        1280,
+        720
+    );
+
+    pipeline.render(
+        framebuffer
+    );
+
+    WoflEvent wheel{
+        WoflEventType::MouseWheel
+    };
+
+    wheel.deltaY = 100.0f;
+
+    pipeline.handleEvent(
+        wheel
+    );
+
+    return
+        pipeline.document.type ==
+            WoflNodeType::Document &&
+        framebuffer.width == 1280 &&
+        framebuffer.height == 720 &&
+        framebuffer.pixels.size() ==
+            static_cast<std::size_t>(
+                1280 * 720
+            );
+}
